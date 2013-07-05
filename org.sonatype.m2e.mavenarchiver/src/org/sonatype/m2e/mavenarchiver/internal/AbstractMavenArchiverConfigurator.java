@@ -67,6 +67,7 @@ import org.eclipse.m2e.core.project.configurator.AbstractBuildParticipant;
 import org.eclipse.m2e.core.project.configurator.AbstractProjectConfigurator;
 import org.eclipse.m2e.core.project.configurator.MojoExecutionKey;
 import org.eclipse.m2e.core.project.configurator.ProjectConfigurationRequest;
+import org.sonatype.plexus.build.incremental.BuildContext;
 
 
 /**
@@ -130,11 +131,11 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
             delta.accept(visitor);
             force = visitor.foundManifest;
           }
-          //The manifest will be (re)generated if it doesn't exist or an existing manifest is modified
-          mavenProjectChanged(projectFacade, null, force, monitor);
+          BuildContext buildContext = getBuildContext();
           
-          writePom(projectFacade, monitor);
-
+          //The manifest will be (re)generated if it doesn't exist or an existing manifest is modified
+          mavenProjectChanged(projectFacade, null, force, buildContext, monitor);
+          
           return null;
         }
       };
@@ -168,11 +169,21 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
     if(oldFacade == null && newFacade == null) {
       return;
     }
-    mavenProjectChanged(newFacade, oldFacade, false, monitor);
+    mavenProjectChanged(newFacade, oldFacade, false, null, monitor);
   }
 
+  
+  /**
+   * Overloaded variant of method (without buildContext) for backward compatibility. 
+   */
+  public void mavenProjectChanged(IMavenProjectFacade newFacade, IMavenProjectFacade oldFacade, boolean forceGeneration, 
+          IProgressMonitor monitor)
+      throws CoreException {
+      mavenProjectChanged(newFacade, oldFacade, forceGeneration, null, monitor);
+  }
  
-  public void mavenProjectChanged(IMavenProjectFacade newFacade, IMavenProjectFacade oldFacade, boolean forceGeneration, IProgressMonitor monitor)
+  public void mavenProjectChanged(IMavenProjectFacade newFacade, IMavenProjectFacade oldFacade, boolean forceGeneration, 
+		  BuildContext buildContext, IProgressMonitor monitor)
       throws CoreException {
 
     final IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
@@ -180,11 +191,14 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
     
     IFile manifest = outputdir.getFolder("META-INF").getFile("MANIFEST.MF");
 
+    boolean manifestGenerated = false;
     if(forceGeneration || needsNewManifest(manifest, oldFacade, newFacade, monitor)) {
       generateManifest(newFacade, manifest, monitor);
-      refresh(newFacade, outputdir, monitor);
+      manifestGenerated = true;
     }
-
+    if (writePom(newFacade, monitor, buildContext) || manifestGenerated) {
+    	refresh(newFacade, outputdir, monitor);
+    }
   }
 
   /**
@@ -660,7 +674,8 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
     return fakeFile;
   }
   
-  protected void writePom(IMavenProjectFacade facade, IProgressMonitor monitor) throws CoreException {
+  protected boolean writePom(IMavenProjectFacade facade, IProgressMonitor monitor, BuildContext buildContext) throws CoreException {
+	boolean modified = false;  
     IProject project = facade.getProject();
     ArtifactKey mavenProject = facade.getArtifactKey();
     IWorkspaceRoot root = project.getWorkspace().getRoot();
@@ -684,23 +699,39 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
       properties.store(buf, GENERATED_BY_M2E);
     } catch(IOException ex) {
     }
-
-    if(pomProperties.exists()) {
-      pomProperties.setContents(new ByteArrayInputStream(buf.toByteArray()), IResource.FORCE, monitor);
-    } else {
-      pomProperties.create(new ByteArrayInputStream(buf.toByteArray()), IResource.FORCE, monitor);
+    
+    IFile pom = output.getFile("pom.xml");
+    File sourcePom = facade.getPomFile();
+    File targetPom = pom.getRawLocation().makeAbsolute().toFile();
+    boolean pomChanged = false;
+    if (buildContext != null) {
+    	pomChanged = ! buildContext.isUptodate(targetPom, sourcePom);
     }
 
-    IFile pom = output.getFile("pom.xml");
+    if(pomProperties.exists()) {
+      if(pomChanged) {	
+        pomProperties.setContents(new ByteArrayInputStream(buf.toByteArray()), IResource.FORCE, monitor);
+        modified = true;
+      }
+    } else {
+      pomProperties.create(new ByteArrayInputStream(buf.toByteArray()), IResource.FORCE, monitor);
+      modified = true;
+    }
+
     InputStream is = facade.getPom().getContents();
     try {
       if(pom.exists()) {
-        pom.setContents(is, IResource.FORCE, monitor);
+        if(pomChanged) {	  
+          pom.setContents(is, IResource.FORCE, monitor);
+          modified = true;
+        }
       } else {
         pom.create(is, IResource.FORCE, monitor);
+        modified = true;
       }
     } finally {
       IOUtil.close(is);
     }
+    return modified;
   }
 }
