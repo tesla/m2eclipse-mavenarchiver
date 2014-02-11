@@ -38,6 +38,7 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.Mojo;
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.ReflectionUtils;
 import org.codehaus.plexus.util.WriterFactory;
@@ -57,6 +58,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.embedder.ArtifactKey;
 import org.eclipse.m2e.core.embedder.IMaven;
+import org.eclipse.m2e.core.internal.IMavenConstants;
 import org.eclipse.m2e.core.internal.M2EUtils;
 import org.eclipse.m2e.core.lifecyclemapping.model.IPluginExecutionMetadata;
 import org.eclipse.m2e.core.project.IMavenProjectFacade;
@@ -132,7 +134,24 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
           //The manifest will be (re)generated if it doesn't exist or an existing manifest is modified
           mavenProjectChanged(projectFacade, null, force, monitor);
           
-          writePom(projectFacade, monitor);
+          boolean forcePom = getBuildContext().hasDelta(IMavenConstants.POM_FILE_NAME);
+          
+          if (!forcePom) {
+        	  IProject project = projectFacade.getProject();
+        	  IWorkspaceRoot root = project.getWorkspace().getRoot();
+        	  ArtifactKey mavenProject = projectFacade.getArtifactKey();  
+        	  IPath outputPath = getOutputDir(projectFacade).append("META-INF/maven").append(mavenProject.getGroupId()).append(
+        	        mavenProject.getArtifactId());
+
+        	  IFolder output = root.getFolder(outputPath);
+        	  IFile pom = output.getFile(IMavenConstants.POM_FILE_NAME);
+        	  if (pom == null || !pom.exists()) {
+        		  forcePom = true;
+        	  }
+          }
+          if (forcePom) {
+        	  writePom(projectFacade, monitor);
+          }
 
           return null;
         }
@@ -343,26 +362,34 @@ public abstract class AbstractMavenArchiverConfigurator extends AbstractProjectC
       MavenSession session = getMavenSession(mavenFacade, monitor);
       
       parentHierarchyLoaded = loadParentHierarchy(mavenFacade, monitor);
-      
-      MavenExecutionPlan executionPlan = maven.calculateExecutionPlan(session, mavenProject,
-          Collections.singletonList("package"), true, monitor);
-      MojoExecution mojoExecution = getExecution(executionPlan, getExecutionKey());
-      if(mojoExecution == null) {
-        return;
+
+      ClassLoader originalTCL = Thread.currentThread().getContextClassLoader();
+      try {
+        ClassRealm projectRealm = mavenProject.getClassRealm();
+        if(projectRealm != null && projectRealm != originalTCL) {
+          Thread.currentThread().setContextClassLoader(projectRealm);
+        }
+        MavenExecutionPlan executionPlan = maven.calculateExecutionPlan(session, mavenProject,
+            Collections.singletonList("package"), true, monitor);
+        MojoExecution mojoExecution = getExecution(executionPlan, getExecutionKey());
+        if(mojoExecution == null) {
+          return;
+        }
+
+        //Get the target manifest file
+        IFolder destinationFolder = (IFolder) manifest.getParent();
+        M2EUtils.createFolder(destinationFolder, true, monitor);
+
+        //Workspace project artifacts don't have a valid getFile(), so won't appear in the manifest
+        //We need to workaround the issue by creating  fake files for such artifacts. 
+        //We could also use a custom File implementation having "public boolean exists(){return true;}"
+        mavenProject.setArtifacts(fixArtifactFileNames(mavenFacade));
+
+        //Invoke the manifest generation API via reflection
+        reflectManifestGeneration(mavenProject, mojoExecution, session, new File(manifest.getLocation().toOSString()));
+      } finally {
+        Thread.currentThread().setContextClassLoader(originalTCL);
       }
-  
-      //Get the target manifest file
-      IFolder destinationFolder = (IFolder) manifest.getParent();
-      M2EUtils.createFolder(destinationFolder, true, monitor);
-      
-      //Workspace project artifacts don't have a valid getFile(), so won't appear in the manifest
-      //We need to workaround the issue by creating  fake files for such artifacts. 
-      //We could also use a custom File implementation having "public boolean exists(){return true;}"
-      mavenProject.setArtifacts(fixArtifactFileNames(mavenFacade));
-  
-      //Invoke the manifest generation API via reflection
-      reflectManifestGeneration(mavenProject, mojoExecution, session, new File(manifest.getLocation().toOSString()));
-       
     } catch(Exception ex) {
       markerManager.addErrorMarkers(mavenFacade.getPom(), MavenArchiverConstants.MAVENARCHIVER_MARKER_ERROR,ex);
       
