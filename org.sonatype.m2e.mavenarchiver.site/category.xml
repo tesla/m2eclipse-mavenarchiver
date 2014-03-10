@@ -7,7 +7,7 @@
   http://www.eclipse.org/legal/epl-v10.html
 -->
 <site>
-   <feature url="features/org.sonatype.m2e.mavenarchiver.feature_0.15.0.qualifier.jar" id="org.sonatype.m2e.mavenarchiver.feature" version="0.15.0.qualifier">
+   <feature url="features/org.sonatype.m2e.mavenarchiver.feature_0.0.0.jar" id="org.sonatype.m2e.mavenarchiver.feature" version="0.0.0">
       <category name="m2eclipse-mavenarchiver"/>
    </feature>
    <category-def name="m2eclipse-mavenarchiver" label="M2E Maven Archiver Connector"/>

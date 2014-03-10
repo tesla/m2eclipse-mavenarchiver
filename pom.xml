@@ -29,7 +29,7 @@
   <properties>
     <repositoryPathId>m2eclipse-mavenarchiver</repositoryPathId>
     <p2MetadataName>M2E Maven Archiver Connector</p2MetadataName>
-    <tychoVersion>0.18.0</tychoVersion>
+    <tychoVersion>0.19.0</tychoVersion>
   </properties>  
   
   <repositories>
@@ -44,6 +44,7 @@
     <module>org.sonatype.m2e.mavenarchiver</module>
     <module>org.sonatype.m2e.mavenarchiver.feature</module>
     <module>org.sonatype.m2e.mavenarchiver.tests</module>
+    <module>org.sonatype.m2e.mavenarchiver.site</module>
   </modules>
 
   <pluginRepositories>
@@ -128,6 +129,22 @@
             <artifactId>tycho-p2-plugin</artifactId>
             <version>${tychoVersion}</version>
             <executions>
+            
+            
+	          <execution>
+	            <id>default-p2-metadata-default</id>
+	            <goals>
+	              <goal>p2-metadata-default</goal>
+	            </goals>
+	            <phase>package</phase>
+	          </execution>
+	          <execution>
+	            <id>default-feature-p2-metadata</id>
+	            <goals>
+	              <goal>feature-p2-metadata</goal>
+	            </goals>
+	            <phase>package</phase>
+	          </execution>
               <execution>
                 <id>p2-metadata</id>
                 <goals>
