@@ -11,40 +11,32 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.tesla.tycho</groupId>
+    <groupId>io.takari.tycho</groupId>
     <artifactId>tycho-support</artifactId>
-    <version>0.0.7</version>
+    <version>0.15.0</version>
   </parent>
-  
+
   <!--
-  <groupId>org.sonatype.m2e.mavenarchiver</groupId>  
+  <groupId>org.sonatype.m2e.mavenarchiver</groupId>
   Use exising groupId for now until we figure out how to migrate people. If it matters.
   -->
-  <groupId>org.sonatype.m2e.extras</groupId>  
+  <groupId>org.sonatype.m2e.extras</groupId>
   <artifactId>org.sonatype.m2e.mavenarchiver.parent</artifactId>
-  <version>0.16.0-SNAPSHOT</version>
+  <version>0.17.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>M2E Maven Archiver Connector</name>
 
   <properties>
     <repositoryPathId>m2eclipse-mavenarchiver</repositoryPathId>
     <p2MetadataName>M2E Maven Archiver Connector</p2MetadataName>
-    <tychoVersion>0.19.0</tychoVersion>
+    <tychoVersion>0.22.0</tychoVersion>
   </properties>  
-  
-  <repositories>
-    <repository>
-      <id>m2e-tests</id>
-      <url>http://download.eclipse.org/technology/m2e/releases/</url>
-      <layout>p2</layout>
-    </repository>      
-  </repositories>  
-    
+
   <modules>
     <module>org.sonatype.m2e.mavenarchiver</module>
     <module>org.sonatype.m2e.mavenarchiver.feature</module>
     <module>org.sonatype.m2e.mavenarchiver.tests</module>
-    <module>org.sonatype.m2e.mavenarchiver.site</module>
+    <module>org.sonatype.m2e.mavenarchiver.repository</module>
   </modules>
 
   <pluginRepositories>
@@ -56,13 +48,13 @@
       </snapshots>
     </pluginRepository>
   </pluginRepositories>
-  
+
   <profiles>
       <profile>
       <id>eclipse-sign</id>
 
       <properties>
-         <tycho-extras-version>${tychoVersion}</tycho-extras-version>    
+         <tycho-extras-version>${tychoVersion}</tycho-extras-version>
       </properties>
       <pluginRepositories>
         <pluginRepository>
@@ -129,8 +121,8 @@
             <artifactId>tycho-p2-plugin</artifactId>
             <version>${tychoVersion}</version>
             <executions>
-            
-            
+
+
 	          <execution>
 	            <id>default-p2-metadata-default</id>
 	            <goals>

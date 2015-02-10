@@ -177,7 +177,8 @@ public class MavenArchiverTest
         assertNoErrors(project);
         assertNoErrors(dependency);
         
-        IMavenProjectFacade facade = MavenPlugin.getMavenProjectRegistry().create( project, monitor );
+        assertNotNull( MavenPlugin.getMavenProjectRegistry().create( project, monitor ) );
+        assertNotNull( MavenPlugin.getMavenProjectRegistry().create( dependency, monitor ) );
         
         IFile manifestFile = project.getFile( "target/classes/META-INF/MANIFEST.MF");
         IPath manifestPath = manifestFile.getFullPath();
@@ -211,24 +212,37 @@ public class MavenArchiverTest
     @Test
     public void test003_ProvidedManifest() throws Exception 
     {
-      IProject project = importProject("projects/mavenarchiver/mavenarchiver-p003/pom.xml");
-      waitForJobsToComplete();
-      
-      IFile manifestFile = project.getFile("src/main/resources/META-INF/MANIFEST.MF");
-      assertTrue("The manifest was deleted", manifestFile.exists());
-      
-      IFile generatedManifestFile = project.getFile("target/classes/META-INF/MANIFEST.MF");
-      assertTrue("The generated manifest is missing", generatedManifestFile.exists());
-      
-      IMavenProjectFacade facade = MavenPlugin.getMavenProjectRegistry().create( project, monitor );
-      ArtifactKey key = facade.getArtifactKey();
-      
-      String manifest =getAsString(generatedManifestFile);
-      assertTrue("Built-By is invalid :"+manifest, manifest.contains("You know who"));
-      assertTrue("Implementation-Title is invalid :"+manifest, manifest.contains("Implementation-Title: "+key.getArtifactId()));
-      assertTrue("Invalid Classpath in manifest : " + manifest, manifest.contains("Class-Path: custom.jar"));
+      // against maven-jar-plugin:2.2 which uses plexus-archiver:1.0-alpha-9
+      _testProvidedManifest("projects/mavenarchiver/mavenarchiver-p003/pom.xml");
     }
-
+    
+    @Test
+    public void test005_ProvidedManifest() throws Exception 
+    {
+      // against maven-jar-plugin:2.4 which uses plexus-archiver:2.1
+      _testProvidedManifest("projects/mavenarchiver/mavenarchiver-p005/pom.xml");      
+    }
+    
+    private void _testProvidedManifest(String pomLocation) throws Exception
+    {
+    	IProject project = importProject(pomLocation);
+        waitForJobsToComplete();
+        
+        IFile manifestFile = project.getFile("src/main/resources/META-INF/MANIFEST.MF");
+        assertTrue("The manifest was deleted", manifestFile.exists());
+        
+        IFile generatedManifestFile = project.getFile("target/classes/META-INF/MANIFEST.MF");
+        assertTrue("The generated manifest is missing", generatedManifestFile.exists());
+        
+        IMavenProjectFacade facade = MavenPlugin.getMavenProjectRegistry().create( project, monitor );
+        ArtifactKey key = facade.getArtifactKey();
+        
+        String manifest =getAsString(generatedManifestFile);
+        assertTrue("Built-By is invalid :"+manifest, manifest.contains("You know who"));
+        assertTrue("Implementation-Title is invalid :"+manifest, manifest.contains("Implementation-Title: "+key.getArtifactId()));
+        assertTrue("Invalid Classpath in manifest : " + manifest, manifest.contains("Class-Path: custom.jar"));
+    }
+    
     public void testMECLIPSEWTP163_ParentMustBeResolved()
             throws Exception
     {
@@ -243,14 +257,44 @@ public class MavenArchiverTest
         
         IFile generatedManifestFile = child.getFile("target/classes/META-INF/MANIFEST.MF");
         assertTrue("The generated manifest is missing", generatedManifestFile.exists());
-        
+
         IMavenProjectFacade parentFacade = MavenPlugin.getMavenProjectRegistry().create( parent, monitor );
-        String parentUrl = parentFacade.getMavenProject().getModel().getUrl();
-        
+        String parentUrl = parentFacade.getMavenProject( monitor ).getModel().getUrl();
+
         String manifest =getAsString(generatedManifestFile);
         assertTrue("Implementation-Url is invalid :"+manifest, manifest.contains("Implementation-URL: "+parentUrl));
     }
     
+    public void test004_workspaceProjectsInClasspath()
+            throws Exception
+    {
+        IProject[] projects = importProjects( "projects/mavenarchiver/",
+				        		new String[]
+				        				{
+        								"mavenarchiver-p004/pom.xml",
+				        				"mavenarchiver-p001/pom.xml"
+        								}, 
+				        		new ResolverConfiguration());
+        waitForJobsToComplete();
+        IProject project = projects[0];
+        IProject dependency = projects[1];
+        
+        assertNoErrors(project);
+        assertNoErrors(dependency);
+        
+        assertNotNull( MavenPlugin.getMavenProjectRegistry().create( project, monitor ) );
+        assertNotNull( MavenPlugin.getMavenProjectRegistry().create( dependency, monitor ) );
+        
+        IFile manifestFile = project.getFile( "target/classes/META-INF/MANIFEST.MF");
+        IPath manifestPath = manifestFile.getFullPath();
+        assertTrue( manifestFile + " is not accessible", manifestFile.isAccessible() );
+
+        String manifestContent = getAsString(manifestPath);
+
+        assertTrue("Invalid Classpath in manifest : " + manifestContent, 
+        		manifestContent.contains("Class-Path: mavenarchiver-p001-0.0.1-SNAPSHOT.jar"));
+    }
+
     private Properties loadProperties( IPath aPath )
         throws CoreException, IOException
     {
