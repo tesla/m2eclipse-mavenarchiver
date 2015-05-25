@@ -30,7 +30,7 @@
     <repositoryPathId>m2eclipse-mavenarchiver</repositoryPathId>
     <p2MetadataName>M2E Maven Archiver Connector</p2MetadataName>
     <tychoVersion>0.22.0</tychoVersion>
-  </properties>  
+  </properties>
 
   <modules>
     <module>org.sonatype.m2e.mavenarchiver</module>
@@ -153,4 +153,13 @@
       </build>
     </profile>
   </profiles>
+
+  <repositories>
+    <repository>
+      <id>eclipse-license</id>
+      <layout>p2</layout>
+      <url>http://download.eclipse.org/cbi/updates/license</url>
+    </repository>
+  </repositories>
+
 </project>
