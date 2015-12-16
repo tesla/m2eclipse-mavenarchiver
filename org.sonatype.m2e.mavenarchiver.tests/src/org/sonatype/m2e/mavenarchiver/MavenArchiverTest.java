@@ -11,7 +11,6 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.m2e.core.MavenPlugin;
 import org.eclipse.m2e.core.embedder.ArtifactKey;
 import org.eclipse.m2e.core.internal.IMavenConstants;
@@ -259,6 +258,27 @@ public class MavenArchiverTest
         assertTrue("Built-By is invalid :"+manifest, manifest.contains("You know who"));
         assertTrue("Implementation-Title is invalid :"+manifest, manifest.contains("Implementation-Title: "+key.getArtifactId()));
         assertTrue("Invalid Classpath in manifest : " + manifest, manifest.contains("Class-Path: custom.jar"));
+    }
+    
+    @Test
+    public void test006_UseDefaultManifestFile() throws Exception 
+    {
+    	IProject project = importProject("projects/mavenarchiver/mavenarchiver-p006/pom.xml");
+    	waitForJobsToComplete();
+    	
+    	IFile manifestFile = project.getFile("src/main/resources/META-INF/MANIFEST.MF");
+    	assertTrue("The manifest was deleted", manifestFile.exists());
+
+    	// trigger a full build
+        project.build( IncrementalProjectBuilder.FULL_BUILD, monitor );
+        waitForJobsToComplete();
+        assertNoErrors(project);
+
+    	IFile generatedManifestFile = project.getFile("target/classes/META-INF/MANIFEST.MF");
+    	assertTrue("A manifest is missing", generatedManifestFile.exists());
+    	
+    	String manifest =getAsString(generatedManifestFile);
+    	assertTrue("Built-By is invalid:"+manifest, manifest.contains("Built-By: You know who"));
     }
     
     public void testMECLIPSEWTP163_ParentMustBeResolved()
