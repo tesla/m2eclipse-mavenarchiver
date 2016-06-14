@@ -476,10 +476,11 @@ private static final String MANIFEST_ENTRIES_NODE = "manifestEntries";
       mergeManifests(manifest, userManifest);
       
       //Serialize the Manifest instance to an actual file
-      Method write = manifest.getClass().getMethod("write", PrintWriter.class);
-      printWriter = new PrintWriter(WriterFactory.newWriter(manifestFile, WriterFactory.UTF_8));
-      write.invoke(manifest, printWriter);
-      
+      Method write = getWriteMethod(manifest);
+      if (write != null) {
+    	  printWriter = new PrintWriter(WriterFactory.newWriter(manifestFile, WriterFactory.UTF_8));
+    	  write.invoke(manifest, printWriter);
+      }
     } finally {
       if(printWriter != null) {
         printWriter.close();
