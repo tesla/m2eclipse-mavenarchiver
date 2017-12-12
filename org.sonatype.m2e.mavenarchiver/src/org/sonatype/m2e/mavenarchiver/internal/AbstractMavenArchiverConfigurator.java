@@ -208,7 +208,7 @@ private static final String MANIFEST_ENTRIES_NODE = "manifestEntries";
 
     if(forceGeneration || needsNewManifest(manifest, oldFacade, newFacade, monitor)) {
       generateManifest(newFacade, manifest, monitor);
-      refresh(newFacade, outputdir, monitor);
+      refresh(newFacade, manifest, monitor);
     }
 
   }
@@ -228,9 +228,9 @@ private static final String MANIFEST_ENTRIES_NODE = "manifestEntries";
    * @param monitor the progress monitor
    * @throws CoreException
    */
-  protected void refresh(IMavenProjectFacade mavenFacade, IFolder outputdir, IProgressMonitor monitor) throws CoreException {
+  protected void refresh(IMavenProjectFacade mavenFacade, IResource outputdir, IProgressMonitor monitor) throws CoreException {
      //refresh the target folder
-     if (outputdir.exists()) {
+     if (outputdir.exists() && !outputdir.isDerived(IResource.CHECK_ANCESTORS)) {
 	   try {
 	     outputdir.refreshLocal(IResource.DEPTH_INFINITE, monitor);
        } catch (Exception e) {
@@ -258,7 +258,7 @@ private static final String MANIFEST_ENTRIES_NODE = "manifestEntries";
   protected boolean needsNewManifest(IFile manifest, IMavenProjectFacade oldFacade, IMavenProjectFacade newFacade,
       IProgressMonitor monitor) {
 
-    if(!manifest.exists()) {
+    if(!manifest.getLocation().toFile().exists()) {
       return true;
     }
     //Can't compare to a previous state, so assuming it's unchanged
