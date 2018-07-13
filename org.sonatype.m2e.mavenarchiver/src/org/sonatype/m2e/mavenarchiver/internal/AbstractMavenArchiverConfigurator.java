@@ -742,11 +742,14 @@ private static final String MANIFEST_ENTRIES_NODE = "manifestEntries";
    * Generates a temporary file in the system temporary folder for a given artifact
    * @param localRepo the local repository used to compute the file path
    * @param artifact the artifact to generate a temporary file for
-   * @return a temporary file sitting under ${"java.io.tmpdir"}/fakerepo/${groupid}/{artifactid}/${version}/
+   * @return a temporary file sitting under ${"java.io.tmpdir"}/fakerepo[_{"user.name"}]/${groupid}/{artifactid}/${version}/
    * @throws IOException if the file could not be created
    */
   private File fakeFile(ArtifactRepository localRepo, Artifact artifact) throws IOException {
-    File fakeRepo = new File(System.getProperty("java.io.tmpdir"), "fakerepo");
+    // The path to the fake repo should be unique for each user of a system
+    String userName = System.getProperty("user.name");
+    String subDirSuffix = (userName != null) ? ("_" + userName) : ("");
+    File fakeRepo = new File(System.getProperty("java.io.tmpdir"), "fakerepo" + subDirSuffix);
   
     File fakeFile = new File(fakeRepo, localRepo.pathOf(artifact));
     File parent = fakeFile.getParentFile();
