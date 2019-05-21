@@ -29,10 +29,23 @@
   <properties>
     <repositoryPathId>m2eclipse-mavenarchiver</repositoryPathId>
     <p2MetadataName>M2E Maven Archiver Connector</p2MetadataName>
-    <tychoVersion>0.25.0</tychoVersion>
-    <m2e-core.url>http://download.eclipse.org/technology/m2e/releases/1.6/</m2e-core.url>
+    <tychoVersion>1.4.0</tychoVersion>
+    <m2e-core.url>http://download.eclipse.org/technology/m2e/releases/1.11/</m2e-core.url>
+    <eclipse.stream>2019-03</eclipse.stream>
+    <eclipse-repo.url>http://download.eclipse.org/releases/${eclipse.stream}</eclipse-repo.url>
   </properties>
-
+  <repositories>
+    <repository>
+      <id>platform</id>
+      <layout>p2</layout>
+      <url>${eclipse-repo.url}</url>
+    </repository>
+    <repository>
+      <id>eclipse-license</id>
+      <layout>p2</layout>
+      <url>http://download.eclipse.org/cbi/updates/license</url>
+    </repository>
+  </repositories>
   <modules>
     <module>org.sonatype.m2e.mavenarchiver</module>
     <module>org.sonatype.m2e.mavenarchiver.feature</module>
@@ -53,7 +66,6 @@
   <profiles>
       <profile>
       <id>eclipse-sign</id>
-
       <properties>
          <tycho-extras-version>${tychoVersion}</tycho-extras-version>
       </properties>
@@ -122,8 +134,6 @@
             <artifactId>tycho-p2-plugin</artifactId>
             <version>${tychoVersion}</version>
             <executions>
-
-
 	          <execution>
 	            <id>default-p2-metadata-default</id>
 	            <goals>
@@ -154,13 +164,4 @@
       </build>
     </profile>
   </profiles>
-
-  <repositories>
-    <repository>
-      <id>eclipse-license</id>
-      <layout>p2</layout>
-      <url>http://download.eclipse.org/cbi/updates/license</url>
-    </repository>
-  </repositories>
-
 </project>
